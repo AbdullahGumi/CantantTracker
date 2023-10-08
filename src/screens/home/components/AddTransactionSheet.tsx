@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import BottomSheet from "@gorhom/bottom-sheet";
 import DropDownPicker from "react-native-dropdown-picker";
 import { BottomSheetMethods } from "@gorhom/bottom-sheet/lib/typescript/types";
+import * as SQLite from "expo-sqlite";
 
 import CustomText from "../../../components/CustomText";
 import { CalendarIcon } from "../../../../assets/svg";
@@ -25,6 +26,7 @@ interface IProps {
   selectedDate: Date;
   setSelectedDate: (value: React.SetStateAction<Date>) => void;
   transactions: ITransaction[];
+  db: SQLite.SQLiteDatabase;
 }
 
 const AddTransactionSheet = ({
@@ -37,12 +39,35 @@ const AddTransactionSheet = ({
   setCalendarOpen,
   setTransactions,
   setSelectedDate,
+  db,
 }: IProps) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [open, setOpen] = useState(false);
   const [transactionType, setTransactionType] = useState("");
   const snapPoints = useMemo(() => ["90%", "100%"], []);
+
+  const addTransaction = () => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "INSERT INTO transactions (name, amount, transactionType, selectedDate, icon) VALUES (?, ?, ?, ?, ?)",
+        [
+          selectedTransaction.name !== "Custom"
+            ? selectedTransaction.name
+            : name,
+          amount,
+          selectedTransaction.transactionType
+            ? selectedTransaction.transactionType
+            : transactionType,
+          selectedDate.toISOString().split("T")[0],
+          selectedTransaction.icon,
+        ],
+        (_, { insertId }) => {
+          // Handle successful insertion if needed
+        }
+      );
+    });
+  };
 
   return (
     <BottomSheet
@@ -155,6 +180,7 @@ const AddTransactionSheet = ({
                 icon: selectedTransaction.icon,
               },
             ]);
+            addTransaction();
             setName("");
             setAmount("");
             setSelectedDate(new Date());

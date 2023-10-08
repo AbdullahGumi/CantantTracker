@@ -6,18 +6,28 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-import { useLayoutEffect, useState, useRef, useCallback } from "react";
+import {
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+} from "react";
 import BottomSheet from "@gorhom/bottom-sheet";
 import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
+import * as SQLite from "expo-sqlite";
 
 import CustomText from "../../components/CustomText";
+import TransactionListItem from "../../components/TransactionListItem";
 import { globalStyles } from "../../styles";
 import { RootStackScreenProps } from "../../navigation/types";
 import { AddIcon, ChartIcon } from "../../../assets/svg";
+
 import { hp } from "../../util/LayoutUtil";
+import { numberWithCommas } from "../../util/StringUtil";
 import HideKeyboardOnTouch from "../../util/HideKeyboardOnTouch";
 import SelectTransactionSheet from "./components/SelectTransactionSheet";
 import AddTransactionSheet from "./components/AddTransactionSheet";
@@ -31,6 +41,23 @@ export interface ITransaction {
 }
 
 const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
+  const db = SQLite.openDatabase("database1.db");
+
+  useEffect(() => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, amount REAL, transactionType TEXT, selectedDate TEXT, icon TEXT)"
+      );
+    });
+    db.transaction((tx) => {
+      tx.executeSql(
+        "SELECT * FROM transactions",
+        undefined,
+        (txObj, resultSet) => setTransactions(resultSet.rows._array)
+      );
+    });
+  }, []);
+
   const [transactions, setTransactions] = useState<ITransaction[]>([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -76,7 +103,13 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
       headerTitle: "",
       headerShadowVisible: false,
       headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.navigate("BalanceReport")}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("BalanceReport", {
+              transactions,
+            })
+          }
+        >
           <ChartIcon color={"white"} />
         </TouchableOpacity>
       ),
@@ -92,6 +125,22 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
       ),
     });
   }, []);
+
+  const calculateExpenses = () => {
+    const currentDate = selectedDate;
+    const currentMonth = currentDate.getMonth();
+    const totalExpenses = transactions.reduce((total, transaction) => {
+      const transactionDate = new Date(transaction.selectedDate);
+      if (
+        transactionDate.getMonth() === currentMonth &&
+        transaction.transactionType === "expense"
+      ) {
+        return total + parseFloat(transaction.amount);
+      }
+      return total;
+    }, 0);
+    return totalExpenses;
+  };
 
   return (
     <>
@@ -117,7 +166,9 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
               <CustomText style={styles.headerText}>
                 This Month’s expenses
               </CustomText>
-              <CustomText style={styles.amountText}>₦ 85,000</CustomText>
+              <CustomText style={styles.amountText}>
+                ₦ {numberWithCommas(calculateExpenses().toFixed(2))}
+              </CustomText>
             </View>
             <View style={styles.contentContainer}>
               {transactions.length === 0 ? (
@@ -150,46 +201,23 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
                     showsVerticalScrollIndicator={false}
                     style={{ marginTop: 20 }}
                   >
-                    <View>
-                      {transactions.map(
-                        (
-                          { amount, name, selectedDate, transactionType, icon },
-                          i
-                        ) => (
-                          <View key={i} style={styles.transactionItem}>
-                            <View style={styles.transactionIconContainer}>
-                              <CustomText style={styles.transactionIconText}>
-                                {icon}
-                              </CustomText>
-                            </View>
-                            <View style={styles.transactionDetailsContainer}>
-                              <CustomText style={styles.transactionNameText}>
-                                {name}
-                              </CustomText>
-                              <CustomText style={styles.transactionTypeText}>
-                                {transactionType}
-                              </CustomText>
-                            </View>
-                            <View style={styles.transactionAmountContainer}>
-                              <CustomText
-                                style={[
-                                  styles.transactionAmountText,
-                                  transactionType === "income"
-                                    ? styles.transactionAmountIncome
-                                    : styles.transactionAmountExpense,
-                                ]}
-                              >
-                                {transactionType === "income" ? "+" : "-"}₦{" "}
-                                {amount}
-                              </CustomText>
-                              <CustomText style={styles.transactionDateText}>
-                                {selectedDate.toISOString().split("T")[0]}
-                              </CustomText>
-                            </View>
-                          </View>
-                        )
-                      )}
-                    </View>
+                    {transactions.map(
+                      (
+                        { amount, name, selectedDate, transactionType, icon },
+                        i
+                      ) => {
+                        return (
+                          <TransactionListItem
+                            key={i}
+                            amount={amount}
+                            name={name}
+                            selectedDate={selectedDate}
+                            transactionType={transactionType}
+                            icon={icon}
+                          />
+                        );
+                      }
+                    )}
                   </ScrollView>
                 </View>
               )}
@@ -201,6 +229,7 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
             transactionSheetRef={transactionSheetRef}
           />
           <AddTransactionSheet
+            db={db}
             selectedDate={selectedDate}
             selectedTransaction={selectedTransaction}
             setCalendarOpen={setCalendarOpen}

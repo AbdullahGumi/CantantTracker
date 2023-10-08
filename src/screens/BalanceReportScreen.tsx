@@ -1,16 +1,20 @@
-import React, { useEffect, useState, useLayoutEffect } from "react";
+import React, { useState, useLayoutEffect } from "react";
+import { ScrollView, TouchableOpacity, View, SafeAreaView } from "react-native";
 
+import TransactionListItem from "../components/TransactionListItem";
 import CustomText from "../components/CustomText";
 import { RootStackScreenProps } from "../navigation/types";
-import { ScrollView, Touchable, TouchableOpacity, View } from "react-native";
 import { ArrowLeftIcon } from "../../assets/svg";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { globalStyles } from "../styles";
 import { hp } from "../util/LayoutUtil";
 
 const BalanceReportScreen = ({
   navigation,
+  route,
 }: RootStackScreenProps<"BalanceReport">) => {
+  const { transactions } = route.params;
+  console.log(transactions);
+
   const filterOptions = [
     "Today",
     "Yesterday",
@@ -108,78 +112,27 @@ const BalanceReportScreen = ({
           </CustomText>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            style={{ marginTop: hp(8) }}
+            style={{ marginTop: hp(8), width: "100%" }}
           >
             <View
               style={{
                 paddingHorizontal: hp(2),
               }}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  paddingHorizontal: 15,
-                  backgroundColor: "#d6d6d656",
-                  paddingVertical: hp(2),
-                  borderRadius: 8,
-                  marginVertical: hp(0.7),
-                  width: "100%",
-                }}
-              >
-                <View
-                  style={{
-                    borderRadius: 8,
-                    width: hp(5),
-                    height: hp(5),
-                    backgroundColor: "white",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <CustomText>😀</CustomText>
-                </View>
-                <View style={{ marginRight: "auto", marginLeft: 15 }}>
-                  <CustomText
-                    style={{
-                      fontSize: hp(1.6),
-                      fontFamily: "Poppins-Bold",
-                    }}
-                  >
-                    Food
-                  </CustomText>
-                  <CustomText
-                    style={{
-                      fontSize: 12,
-                      fontFamily: "Poppins-Bold",
-                      opacity: 0.3,
-                    }}
-                  >
-                    Income
-                  </CustomText>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <CustomText
-                    style={{
-                      fontSize: 14,
-                      fontFamily: "Poppins-SemiBold",
-                      color: "#298200",
-                    }}
-                  >
-                    +₦3,500
-                  </CustomText>
-                  <CustomText
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "Poppins-SemiBold",
-                      opacity: 0.3,
-                    }}
-                  >
-                    2022/02/21
-                  </CustomText>
-                </View>
-              </View>
+              {transactions.map(
+                ({ amount, name, selectedDate, transactionType, icon }, i) => {
+                  return (
+                    <TransactionListItem
+                      key={i}
+                      amount={amount}
+                      name={name}
+                      selectedDate={selectedDate}
+                      transactionType={transactionType}
+                      icon={icon}
+                    />
+                  );
+                }
+              )}
             </View>
           </ScrollView>
         </View>

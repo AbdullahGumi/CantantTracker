@@ -1,5 +1,7 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
+import { ITransaction } from "../screens/home/HomeScreen";
+
 /* Common screens */
 declare global {
   namespace ReactNavigation {
@@ -9,7 +11,7 @@ declare global {
 
 export type RootStackParamList = {
   Home: undefined;
-  BalanceReport: undefined;
+  BalanceReport: { transactions: ITransaction[] };
 };
 
 export type RootStackScreenProps<Screen extends keyof RootStackParamList> =
