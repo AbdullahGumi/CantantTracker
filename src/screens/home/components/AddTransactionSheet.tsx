@@ -4,6 +4,7 @@ import {
   Platform,
   TextInput,
   StyleSheet,
+  Keyboard,
 } from "react-native";
 import { useState, useMemo } from "react";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -15,6 +16,7 @@ import CustomText from "../../../components/CustomText";
 import { CalendarIcon } from "../../../../assets/svg";
 import { hp } from "../../../util/LayoutUtil";
 import { ITransaction } from "../HomeScreen";
+import HideKeyboardOnTouch from "../../../util/HideKeyboardOnTouch";
 
 interface IProps {
   inputsSheetRef: React.RefObject<BottomSheetMethods>;
@@ -42,7 +44,7 @@ const AddTransactionSheet = ({
   db,
 }: IProps) => {
   const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [open, setOpen] = useState(false);
   const [transactionType, setTransactionType] = useState("");
   const snapPoints = useMemo(() => ["90%", "100%"], []);
@@ -62,9 +64,7 @@ const AddTransactionSheet = ({
           selectedDate.toISOString().split("T")[0],
           selectedTransaction.icon,
         ],
-        (_, { insertId }) => {
-          // Handle successful insertion if needed
-        }
+        (_, { insertId }) => {}
       );
     });
   };
@@ -76,123 +76,126 @@ const AddTransactionSheet = ({
       index={-1}
       enablePanDownToClose
     >
-      <View style={styles.container}>
-        <View style={styles.iconContainer}>
-          <CustomText style={styles.iconText}>
-            {selectedTransaction.icon}
-          </CustomText>
-        </View>
-        <View style={styles.inputContainer}>
-          <CustomText style={styles.label}>Name</CustomText>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter name"
-            value={
-              selectedTransaction.name !== "Custom"
-                ? selectedTransaction.name
-                : name
-            }
-            onChangeText={(e) => {
-              selectedTransaction.name === "Custom" && setName(e);
-            }}
-          />
-        </View>
-        <View style={styles.inputContainer}>
-          <CustomText style={styles.label}>Amount</CustomText>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter amount"
-            value={amount}
-            keyboardType="number-pad"
-            onChangeText={(e) => {
-              setAmount(e);
-            }}
-          />
-        </View>
-        <View style={styles.typeAndDateContainer}>
-          <View style={{ width: "45%" }}>
-            <DropDownPicker
-              dropDownDirection="BOTTOM"
-              open={open}
+      <HideKeyboardOnTouch>
+        <View style={styles.container}>
+          <View style={styles.iconContainer}>
+            <CustomText style={styles.iconText}>
+              {selectedTransaction.icon}
+            </CustomText>
+          </View>
+          <View style={styles.inputContainer}>
+            <CustomText style={styles.label}>Name</CustomText>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter name"
               value={
-                selectedTransaction.name === "Income"
-                  ? "income"
-                  : selectedTransaction.name === "Custom"
-                  ? transactionType
-                  : "expense"
+                selectedTransaction.name !== "Custom"
+                  ? selectedTransaction.name
+                  : name
               }
-              placeholder="Type"
-              placeholderStyle={styles.dropdownPlaceholder}
-              items={[
-                { label: "Income", value: "income" },
-                { label: "Expense", value: "expense" },
-              ]}
-              setOpen={setOpen}
-              setValue={setTransactionType}
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
+              onChangeText={(e) => {
+                selectedTransaction.name === "Custom" && setName(e);
+              }}
             />
           </View>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => {
-              Platform.OS === "ios"
-                ? setCalendarOpen(true)
-                : showCalendarOnAndroid();
-            }}
-            style={styles.calendarButton}
-          >
-            <View style={styles.calendarButtonContent}>
-              <CustomText style={styles.calendarButtonText}>
-                {selectedDate
-                  ? selectedDate.toISOString().split("T")[0]
-                  : "Date"}
-              </CustomText>
-              <CalendarIcon color="black" />
+          <View style={styles.inputContainer}>
+            <CustomText style={styles.label}>Amount</CustomText>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter amount"
+              value={String(amount)}
+              keyboardType="number-pad"
+              onChangeText={(e) => {
+                setAmount(Number(e));
+              }}
+            />
+          </View>
+          <View style={styles.typeAndDateContainer}>
+            <View style={{ width: "45%" }}>
+              <DropDownPicker
+                dropDownDirection="BOTTOM"
+                open={open}
+                value={
+                  selectedTransaction.name === "Income"
+                    ? "income"
+                    : selectedTransaction.name === "Custom"
+                    ? transactionType
+                    : "expense"
+                }
+                placeholder="Type"
+                placeholderStyle={styles.dropdownPlaceholder}
+                items={[
+                  { label: "Income", value: "income" },
+                  { label: "Expense", value: "expense" },
+                ]}
+                setOpen={setOpen}
+                setValue={setTransactionType}
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+              />
             </View>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                Platform.OS === "ios"
+                  ? setCalendarOpen(true)
+                  : showCalendarOnAndroid();
+              }}
+              style={styles.calendarButton}
+            >
+              <View style={styles.calendarButtonContent}>
+                <CustomText style={styles.calendarButtonText}>
+                  {selectedDate
+                    ? selectedDate.toISOString().split("T")[0]
+                    : "Date"}
+                </CustomText>
+                <CalendarIcon color="black" />
+              </View>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              Keyboard.dismiss();
+              if (
+                !(
+                  (name || selectedTransaction.name) &&
+                  (transactionType || selectedTransaction.transactionType)
+                ) ||
+                !amount
+              ) {
+                alert("Please fill in all required fields.");
+                return;
+              }
+              setTransactions([
+                ...transactions,
+                {
+                  name:
+                    selectedTransaction.name !== "Custom"
+                      ? selectedTransaction.name
+                      : name,
+                  amount,
+                  transactionType: selectedTransaction.transactionType
+                    ? selectedTransaction.transactionType
+                    : transactionType,
+                  selectedDate,
+                  icon: selectedTransaction.icon,
+                },
+              ]);
+              addTransaction();
+              setName("");
+              setAmount(0);
+              setSelectedDate(new Date());
+              setTransactionType("");
+              inputsSheetRef.current?.close();
+              transactionSheetRef.current?.close();
+            }}
+            style={styles.addButton}
+          >
+            <CustomText style={styles.addButtonText}>Add</CustomText>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => {
-            if (
-              !(
-                (name || selectedTransaction.name) &&
-                (transactionType || selectedTransaction.transactionType)
-              ) ||
-              !amount
-            ) {
-              alert("Please fill in all required fields.");
-              return;
-            }
-            setTransactions([
-              ...transactions,
-              {
-                name:
-                  selectedTransaction.name !== "Custom"
-                    ? selectedTransaction.name
-                    : name,
-                amount,
-                transactionType: selectedTransaction.transactionType
-                  ? selectedTransaction.transactionType
-                  : transactionType,
-                selectedDate,
-                icon: selectedTransaction.icon,
-              },
-            ]);
-            addTransaction();
-            setName("");
-            setAmount("");
-            setSelectedDate(new Date());
-            setTransactionType("");
-            inputsSheetRef.current?.close();
-            transactionSheetRef.current?.close();
-          }}
-          style={styles.addButton}
-        >
-          <CustomText style={styles.addButtonText}>Add</CustomText>
-        </TouchableOpacity>
-      </View>
+      </HideKeyboardOnTouch>
     </BottomSheet>
   );
 };

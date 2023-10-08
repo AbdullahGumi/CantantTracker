@@ -34,14 +34,14 @@ import AddTransactionSheet from "./components/AddTransactionSheet";
 
 export interface ITransaction {
   name: string;
-  amount: string;
+  amount: number;
   transactionType: string;
   icon: string;
   selectedDate: Date;
 }
 
 const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
-  const db = SQLite.openDatabase("database1.db");
+  const db = SQLite.openDatabase("database11101.db");
 
   useEffect(() => {
     db.transaction((tx) => {
@@ -53,7 +53,10 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
       tx.executeSql(
         "SELECT * FROM transactions",
         undefined,
-        (txObj, resultSet) => setTransactions(resultSet.rows._array)
+        (txObj, resultSet) => {
+          console.log(resultSet.rows._array);
+          setTransactions(resultSet.rows._array);
+        }
       );
     });
   }, []);
@@ -62,7 +65,7 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTransaction, setSelectedTransaction] = useState<ITransaction>({
-    amount: "",
+    amount: 0,
     icon: "",
     transactionType: "",
     selectedDate: new Date(),
@@ -104,11 +107,11 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
       headerShadowVisible: false,
       headerLeft: () => (
         <TouchableOpacity
-          onPress={() =>
+          onPress={() => {
             navigation.navigate("BalanceReport", {
               transactions,
-            })
-          }
+            });
+          }}
         >
           <ChartIcon color={"white"} />
         </TouchableOpacity>
@@ -124,7 +127,7 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
         </TouchableOpacity>
       ),
     });
-  }, []);
+  }, [transactions]);
 
   const calculateExpenses = () => {
     const currentDate = selectedDate;
@@ -135,7 +138,7 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
         transactionDate.getMonth() === currentMonth &&
         transaction.transactionType === "expense"
       ) {
-        return total + parseFloat(transaction.amount);
+        return total + transaction.amount;
       }
       return total;
     }, 0);
@@ -144,104 +147,102 @@ const HomeScreen = ({ navigation }: RootStackScreenProps<"Home">) => {
 
   return (
     <>
-      <HideKeyboardOnTouch>
-        <SafeAreaView
+      <SafeAreaView
+        style={[
+          globalStyles.SafeArea,
+          {
+            backgroundColor: Platform.OS === "android" ? "#0D2A2C" : "white",
+          },
+        ]}
+      >
+        <View
           style={[
-            globalStyles.SafeArea,
+            globalStyles.container,
             {
-              backgroundColor: Platform.OS === "android" ? "#0D2A2C" : "white",
+              paddingHorizontal: 0,
+              justifyContent: "space-between",
             },
           ]}
         >
-          <View
-            style={[
-              globalStyles.container,
-              {
-                paddingHorizontal: 0,
-                justifyContent: "space-between",
-              },
-            ]}
-          >
-            <View style={styles.container}>
-              <CustomText style={styles.headerText}>
-                This Month’s expenses
-              </CustomText>
-              <CustomText style={styles.amountText}>
-                ₦ {numberWithCommas(calculateExpenses().toFixed(2))}
-              </CustomText>
-            </View>
-            <View style={styles.contentContainer}>
-              {transactions.length === 0 ? (
-                <View style={styles.noTransactionsContainer}>
-                  <CustomText style={styles.noTransactionsText1}>
-                    No Transactions
-                  </CustomText>
-                  <CustomText style={styles.noTransactionsText2}>
-                    Tap the button to add your transaction
-                  </CustomText>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => handleSnapPress1(0)}
-                    style={styles.addButton}
-                  >
-                    <View style={styles.addIcon}>
-                      <AddIcon color="white" />
-                    </View>
-                    <CustomText style={styles.addButtonText}>
-                      Add Transaction
-                    </CustomText>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.transactionsContainer}>
-                  <CustomText style={styles.transactionsHeaderText}>
-                    Transactions
-                  </CustomText>
-                  <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    style={{ marginTop: 20 }}
-                  >
-                    {transactions.map(
-                      (
-                        { amount, name, selectedDate, transactionType, icon },
-                        i
-                      ) => {
-                        return (
-                          <TransactionListItem
-                            key={i}
-                            amount={amount}
-                            name={name}
-                            selectedDate={selectedDate}
-                            transactionType={transactionType}
-                            icon={icon}
-                          />
-                        );
-                      }
-                    )}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
+          <View style={styles.container}>
+            <CustomText style={styles.headerText}>
+              This Month’s expenses
+            </CustomText>
+            <CustomText style={styles.amountText}>
+              ₦ {numberWithCommas(calculateExpenses().toFixed(2))}
+            </CustomText>
           </View>
-          <SelectTransactionSheet
-            handleSnapPress2={handleSnapPress2}
-            setSelectedTransaction={setSelectedTransaction}
-            transactionSheetRef={transactionSheetRef}
-          />
-          <AddTransactionSheet
-            db={db}
-            selectedDate={selectedDate}
-            selectedTransaction={selectedTransaction}
-            setCalendarOpen={setCalendarOpen}
-            setSelectedDate={setSelectedDate}
-            setTransactions={setTransactions}
-            showCalendarOnAndroid={showCalendarOnAndroid}
-            transactionSheetRef={transactionSheetRef}
-            transactions={transactions}
-            inputsSheetRef={inputsSheetRef}
-          />
-        </SafeAreaView>
-      </HideKeyboardOnTouch>
+          <View style={styles.contentContainer}>
+            {transactions.length === 0 ? (
+              <View style={styles.noTransactionsContainer}>
+                <CustomText style={styles.noTransactionsText1}>
+                  No Transactions
+                </CustomText>
+                <CustomText style={styles.noTransactionsText2}>
+                  Tap the button to add your transaction
+                </CustomText>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => handleSnapPress1(0)}
+                  style={styles.addButton}
+                >
+                  <View style={styles.addIcon}>
+                    <AddIcon color="white" />
+                  </View>
+                  <CustomText style={styles.addButtonText}>
+                    Add Transaction
+                  </CustomText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.transactionsContainer}>
+                <CustomText style={styles.transactionsHeaderText}>
+                  Transactions
+                </CustomText>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  style={{ marginTop: 20 }}
+                >
+                  {transactions.map(
+                    (
+                      { amount, name, selectedDate, transactionType, icon },
+                      i
+                    ) => {
+                      return (
+                        <TransactionListItem
+                          key={i}
+                          amount={amount}
+                          name={name}
+                          selectedDate={selectedDate}
+                          transactionType={transactionType}
+                          icon={icon}
+                        />
+                      );
+                    }
+                  )}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </View>
+        <SelectTransactionSheet
+          handleSnapPress2={handleSnapPress2}
+          setSelectedTransaction={setSelectedTransaction}
+          transactionSheetRef={transactionSheetRef}
+        />
+        <AddTransactionSheet
+          db={db}
+          selectedDate={selectedDate}
+          selectedTransaction={selectedTransaction}
+          setCalendarOpen={setCalendarOpen}
+          setSelectedDate={setSelectedDate}
+          setTransactions={setTransactions}
+          showCalendarOnAndroid={showCalendarOnAndroid}
+          transactionSheetRef={transactionSheetRef}
+          transactions={transactions}
+          inputsSheetRef={inputsSheetRef}
+        />
+      </SafeAreaView>
       {calendarOpen && Platform.OS === "ios" && (
         <DateTimePicker
           value={selectedDate}
