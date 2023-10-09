@@ -28,7 +28,6 @@ import { AddIcon, ChartIcon } from "../../../assets/svg";
 
 import { hp } from "../../util/LayoutUtil";
 import { numberWithCommas } from "../../util/StringUtil";
-import HideKeyboardOnTouch from "../../util/HideKeyboardOnTouch";
 import SelectTransactionSheet from "./components/SelectTransactionSheet";
 import AddTransactionSheet from "./components/AddTransactionSheet";
 
